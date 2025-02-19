@@ -29,14 +29,23 @@ func main() {
 	}
 	defer objs.Close()
 
-	// Attach LSM program.
-	lsmLink, err := link.AttachLSM(link.LSMOptions{
+	// Attach Deny Exec program.
+	denyExecLink, err := link.AttachLSM(link.LSMOptions{
 		Program: objs.DenyExec,
 	})
 	if err != nil {
 		log.Fatal("Attaching LSM:", err)
 	}
-	defer lsmLink.Close()
+	defer denyExecLink.Close()
+
+	// Attach File Open program.
+	fileOpenLink, err := link.AttachLSM(link.LSMOptions{
+		Program: objs.FileOpen,
+	})
+	if err != nil {
+		log.Fatal("Attaching LSM:", err)
+	}
+	defer fileOpenLink.Close()
 
 	err = objs.programMaps.UidMap.Update(uint32(1001), uint32(0), 0)
 	if err != nil {
@@ -48,7 +57,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	time.AfterFunc(2*time.Second, func() {
+	time.AfterFunc(60*time.Second, func() {
 		cancel()
 	})
 

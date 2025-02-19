@@ -26,3 +26,16 @@ int BPF_PROG(deny_exec, struct linux_binprm *bprm, int ret) {
   	
 	return 0;
 }
+
+SEC("lsm/file_open") 
+int BPF_PROG(file_open, struct file *file) {
+	char path[PATHLEN];
+	__u32 uid = bpf_get_current_uid_gid() & 0xFFFFFFFF;
+
+	bpf_d_path(&file->f_path, path, PATHLEN);
+	if (bpf_strncmp(path, 11, "/etc/passwd") == 0 && uid == 1001) {
+		return -EPERM;
+	}
+	bpf_printk("uid: %d, path: %s\n", uid, path);
+	return 0;
+}
