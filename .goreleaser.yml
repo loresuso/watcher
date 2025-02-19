@@ -4,6 +4,8 @@ version: 2
 
 before: 
   hooks:
+  - sudo apt update
+  - sudo apt install -y clang llvm gcc-multilib iproute2 bpfcc-tools linux-headers-$(uname -r) 
   - make generate
 
 builds:
