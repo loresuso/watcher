@@ -33,7 +33,7 @@ int BPF_PROG(file_open, struct file *file) {
 	__u32 uid = bpf_get_current_uid_gid() & 0xFFFFFFFF;
 
 	bpf_d_path(&file->f_path, path, PATHLEN);
-	if (bpf_strncmp(path, 11, "/etc/passwd") == 0 && uid == 1001) {
+	if (bpf_strncmp(path, 11, "/etc/passwd") == 0 && uid == 1002) {
 		return -EPERM;
 	}
 	bpf_printk("uid: %d, path: %s\n", uid, path);
