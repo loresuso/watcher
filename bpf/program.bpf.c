@@ -4,7 +4,8 @@
 #include <bpf/bpf_tracing.h>
 #include <errno.h>
 
-#define PATHLEN 256
+#define PATH_LEN 256
+#define TASK_COMM_LEN 16
 
 char _license[] SEC("license") = "GPL";
 
@@ -29,10 +30,10 @@ int BPF_PROG(deny_exec, struct linux_binprm *bprm, int ret) {
 
 SEC("lsm/file_open") 
 int BPF_PROG(file_open, struct file *file) {
-	char path[PATHLEN];
+	char path[PATH_LEN];
 	__u32 uid = bpf_get_current_uid_gid() & 0xFFFFFFFF;
 
-	bpf_d_path(&file->f_path, path, PATHLEN);
+	bpf_d_path(&file->f_path, path, PATH_LEN);
 	if (bpf_strncmp(path, 11, "/etc/passwd") == 0 && uid == 1002) {
 		return -EPERM;
 	}
@@ -47,5 +48,19 @@ int BPF_PROG(bpf, int cmd, union bpf_attr *attr, unsigned int size) {
 	} else if (cmd == BPF_MAP_CREATE) {
 		return -EACCES;
 	}
+	return 0;
+}
+
+SEC("lsm/task_kill")
+int BPF_PROG(task_kill, struct task_struct *p, struct kernel_siginfo *info,
+		       int sig, const struct cred *cred) {
+	
+	if (sig != 9)
+		return 0;
+
+	if (bpf_strncmp(p->comm, 5, "falco") == 0){
+		return -EPERM;
+	}
+
 	return 0;
 }
