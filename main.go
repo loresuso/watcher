@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -12,6 +13,11 @@ import (
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
+)
+
+const (
+	// Number of BPF programs to load.
+	numBpfPrograms = 3
 )
 
 func main() {
@@ -29,23 +35,40 @@ func main() {
 	}
 	defer objs.Close()
 
+	links := make([]link.Link, 0, numBpfPrograms)
+	defer func() {
+		for i, l := range links {
+			fmt.Printf("Closing link %d\n", i)
+			l.Close()
+		}
+	}()
+
 	// Attach Deny Exec program.
-	denyExecLink, err := link.AttachLSM(link.LSMOptions{
+	l, err := link.AttachLSM(link.LSMOptions{
 		Program: objs.DenyExec,
 	})
 	if err != nil {
 		log.Fatal("Attaching LSM:", err)
 	}
-	defer denyExecLink.Close()
+	links = append(links, l)
 
 	// Attach File Open program.
-	fileOpenLink, err := link.AttachLSM(link.LSMOptions{
+	l, err = link.AttachLSM(link.LSMOptions{
 		Program: objs.FileOpen,
 	})
 	if err != nil {
 		log.Fatal("Attaching LSM:", err)
 	}
-	defer fileOpenLink.Close()
+	links = append(links, l)
+
+	// Attach BPF program.
+	l, err = link.AttachLSM(link.LSMOptions{
+		Program: objs.Bpf,
+	})
+	if err != nil {
+		log.Fatal("Attaching bpf:", err)
+	}
+	links = append(links, l)
 
 	err = objs.programMaps.UidMap.Update(uint32(1001), uint32(0), 0)
 	if err != nil {

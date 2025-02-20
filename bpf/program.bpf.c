@@ -39,3 +39,13 @@ int BPF_PROG(file_open, struct file *file) {
 	bpf_printk("uid: %d, path: %s\n", uid, path);
 	return 0;
 }
+
+SEC("lsm/bpf")
+int BPF_PROG(bpf, int cmd, union bpf_attr *attr, unsigned int size) {
+	if (cmd == BPF_PROG_LOAD) {
+		return -EPERM;
+	} else if (cmd == BPF_MAP_CREATE) {
+		return -EACCES;
+	}
+	return 0;
+}
