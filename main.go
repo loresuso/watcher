@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -13,11 +12,6 @@ import (
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
-)
-
-const (
-	// Number of BPF programs to load.
-	numBpfPrograms = 3
 )
 
 func main() {
@@ -35,10 +29,9 @@ func main() {
 	}
 	defer objs.Close()
 
-	links := make([]link.Link, 0, numBpfPrograms)
+	links := make([]link.Link, 0)
 	defer func() {
-		for i, l := range links {
-			fmt.Printf("Closing link %d\n", i)
+		for _, l := range links {
 			l.Close()
 		}
 	}()
@@ -67,6 +60,24 @@ func main() {
 	})
 	if err != nil {
 		log.Fatal("Attaching bpf:", err)
+	}
+	links = append(links, l)
+
+	// Attach task_kill program.
+	l, err = link.AttachLSM(link.LSMOptions{
+		Program: objs.TaskKill,
+	})
+	if err != nil {
+		log.Fatal("Attaching task_kill:", err)
+	}
+	links = append(links, l)
+
+	// Attach path_unlink program.
+	l, err = link.AttachLSM(link.LSMOptions{
+		Program: objs.PathUnlink,
+	})
+	if err != nil {
+		log.Fatal("Attaching path_unlink:", err)
 	}
 	links = append(links, l)
 

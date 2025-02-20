@@ -64,3 +64,15 @@ int BPF_PROG(task_kill, struct task_struct *p, struct kernel_siginfo *info,
 
 	return 0;
 }
+
+SEC("lsm/path_unlink")
+int BPF_PROG(path_unlink, struct path *dir, struct dentry *dentry) {
+	char path[PATH_LEN];
+	bpf_d_path(dir, path, PATH_LEN);
+
+	if (bpf_strncmp(path, PATH_LEN, "/home/vagrant") == 0){
+		return -EPERM;
+	}
+
+	return 0;
+}
