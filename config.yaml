@@ -1,0 +1,40 @@
+protections:
+  filesystem:
+    files:
+      - /etc/falco/falco.yaml
+      - /etc/falco/rules.yaml
+      - /usr/bin/falco
+    directories:
+      - /etc/falco
+      - /usr/share/falco
+
+  tasks:
+    kill:
+      signals:
+        - SIGKILL
+        - SIGTERM
+        - SIGSTOP
+        - SIGHUP
+        - SIGINT
+        - SIGQUIT
+    ptrace:
+      operations:
+        - PTRACE_ATTACH
+        - PTRACE_POKETEXT
+        - PTRACE_SEIZE
+    memory_protection:
+      block_proc_mem_access: true
+      restrict_vm_write: true
+    target_comms:
+      - falco
+
+  bpf:
+    operations:
+      - BPF_PROG_LOAD
+      - BPF_MAP_UPDATE_ELEM
+      - BPF_OBJ_PIN
+
+  kernel_modules:
+    block_insertion: true  
+    block_unloading: true 
+
